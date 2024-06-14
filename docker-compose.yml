@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+      - keycloak
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    environment:
+      - DATABASE_URL=mysql://myuser:mypassword@maxscale:3306/mydatabase
+      - JWT_SECRET=${JWT_SECRET}
+    depends_on:
+      - maxscale
+      - keycloak
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest    
+    environment:
+      - DB_VENDOR=MYSQL
+      - DB_ADDR=maxscale
+      - DB_DATABASE=keycloak
+      - DB_USER=${MYSQL_USER}
+      - DB_PASSWORD=${MYSQL_PASSWORD}
+      - KEYCLOAK_USER=${KEYCLOAK_USER}
+      - KEYCLOAK_PASSWORD=${KEYCLOAK_PASSWORD}
+    ports:
+      - "8080:8080"
+    depends_on:
+      - maxscale
+
+  galera:
+    image: bitnami/mariadb-galera:latest
+    environment:
+      - MARIADB_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MARIADB_USER=${MYSQL_USER}
+      - MARIADB_PASSWORD=${MYSQL_PASSWORD}
+      - MARIADB_DATABASE=mydatabase
+      - MARIADB_GALERA_CLUSTER_NAME=galera_cluster
+      - MARIADB_GALERA_MARIABACKUP_PASSWORD=${MYSQL_ROOT_PASSWORD}
+    volumes:
+      - galera_data:/bitnami/mariadb
+    networks:
+      - galera
+
+  maxscale:
+    image: mariadb/maxscale:latest
+    environment:
+      - MAXSCALE_USER=${MYSQL_USER}
+      - MAXSCALE_PASSWORD=${MYSQL_PASSWORD}
+    ports:
+      - "3306:3306"
+    depends_on:
+      - galera
+    networks:
+      - galera
+
+networks:
+  galera:
+
+volumes:
+  galera_data:

@@ -1,0 +1,32 @@
+# database/maxscale/maxscale.cnf
+[maxscale]
+threads=auto
+
+[Galera Service]
+type=service
+router=readwritesplit
+servers=node1
+user=${MYSQL_USER}
+passwd=${MYSQL_PASSWORD}
+
+[Galera Listener]
+type=listener
+service=Galera Service
+protocol=MariaDBClient
+port=3306
+
+[node1]
+type=server
+address=galera
+port=3306
+protocol=MariaDBBackend
+
+[MaxAdmin Service]
+type=service
+router=cli
+
+[MaxAdmin Listener]
+type=listener
+service=MaxAdmin Service
+protocol=maxscaled
+socket=default
